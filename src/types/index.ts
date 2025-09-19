@@ -129,8 +129,8 @@ export interface Contest {
   creator?: User
   name: string
   description?: string
-  type: 'DAILY' | 'WEEKLY' | 'SEASONAL' | 'HEAD_TO_HEAD' | 'TOURNAMENT' | 'MULTIPLIER'
-  status: 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'SETTLED' | 'CANCELLED'
+  type: ContestType
+  status: ContestStatus
   entryFee: number
   maxEntries?: number
   currentEntries: number
@@ -392,12 +392,20 @@ export const SPORTS = {
 } as const
 
 export const CONTEST_TYPES = {
-  DAILY: 'daily',
-  WEEKLY: 'weekly',
-  SEASONAL: 'seasonal',
-  HEAD_TO_HEAD: 'head_to_head',
-  TOURNAMENT: 'tournament',
-  MULTIPLIER: 'multiplier',
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  SEASONAL: 'SEASONAL',
+  HEAD_TO_HEAD: 'HEAD_TO_HEAD',
+  TOURNAMENT: 'TOURNAMENT',
+  MULTIPLIER: 'MULTIPLIER',
+} as const
+
+export const CONTEST_STATUSES = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  LOCKED: 'LOCKED',
+  SETTLED: 'SETTLED',
+  CANCELLED: 'CANCELLED',
 } as const
 
 export const PAYMENT_METHODS = {
@@ -419,5 +427,6 @@ export const CURRENCIES = {
 
 export type SportType = typeof SPORTS[keyof typeof SPORTS]
 export type ContestType = typeof CONTEST_TYPES[keyof typeof CONTEST_TYPES]
+export type ContestStatus = typeof CONTEST_STATUSES[keyof typeof CONTEST_STATUSES]
 export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]
 export type Currency = typeof CURRENCIES[keyof typeof CURRENCIES]

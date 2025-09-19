@@ -1,48 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { Contest, ContestStatus, ContestType } from '@/types'
+import { getRequestLogger } from '@/lib/logger'
+
+const contestStatusValues = ['DRAFT', 'ACTIVE', 'LOCKED', 'SETTLED', 'CANCELLED'] as const
+const contestTypeValues = ['DAILY', 'WEEKLY', 'SEASONAL', 'HEAD_TO_HEAD', 'TOURNAMENT', 'MULTIPLIER'] as const
+
+const contestsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    sport: z.string().min(1).optional(),
+    status: z.enum(contestStatusValues).optional(),
+    type: z.enum(contestTypeValues).optional(),
+    minEntryFee: z.coerce.number().nonnegative().optional(),
+    maxEntryFee: z.coerce.number().nonnegative().optional(),
+  })
+  .refine(
+    data =>
+      data.minEntryFee === undefined ||
+      data.maxEntryFee === undefined ||
+      data.maxEntryFee >= data.minEntryFee,
+    {
+      message: 'maxEntryFee must be greater than or equal to minEntryFee',
+      path: ['maxEntryFee'],
+    }
+  )
+
+const contestInputSchema = z
+  .object({
+    sportId: z.string().min(1),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    type: z.enum(contestTypeValues),
+    entryFee: z.coerce.number().nonnegative(),
+    maxEntries: z.coerce.number().int().positive().optional(),
+    prizePool: z.coerce.number().nonnegative(),
+    rosterSize: z.coerce.number().int().positive(),
+    salaryCap: z.coerce.number().nonnegative().optional(),
+    scoringRules: z.record(z.any()).optional(),
+    startTime: z.coerce.date(),
+    endTime: z.coerce.date().optional(),
+    lockTime: z.coerce.date().optional(),
+    isPrivate: z.coerce.boolean().optional(),
+  })
+  .refine(data => !data.endTime || data.endTime >= data.startTime, {
+    message: 'endTime must be after startTime',
+    path: ['endTime'],
+  })
+  .refine(data => !data.lockTime || data.lockTime <= data.startTime, {
+    message: 'lockTime must be before or equal to startTime',
+    path: ['lockTime'],
+  })
 
 export async function GET(request: NextRequest) {
+  const requestLogger = getRequestLogger(request)
+  const queryObject = Object.fromEntries(request.nextUrl.searchParams.entries())
+  const parsedQuery = contestsQuerySchema.safeParse(queryObject)
+
+  if (!parsedQuery.success) {
+    requestLogger.warn({ issues: parsedQuery.error.flatten() }, 'Invalid contest query received')
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Invalid query parameters',
+        details: parsedQuery.error.flatten(),
+      },
+      { status: 400 }
+    )
+  }
+
+  const { page, limit, sport, status, type, minEntryFee, maxEntryFee } = parsedQuery.data
+  const skip = (page - 1) * limit
+
+  const where: Record<string, unknown> = {}
+
+  if (sport) {
+    where.sport = { is: { slug: sport } }
+  }
+
+  if (status) {
+    where.status = status
+  }
+
+  if (type) {
+    where.type = type
+  }
+
+  if (minEntryFee !== undefined || maxEntryFee !== undefined) {
+    const entryFeeFilter: Record<string, number> = {}
+    if (minEntryFee !== undefined) {
+      entryFeeFilter.gte = minEntryFee
+    }
+    if (maxEntryFee !== undefined) {
+      entryFeeFilter.lte = maxEntryFee
+    }
+    where.entryFee = entryFeeFilter
+  }
+
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const sport = searchParams.get('sport')
-    const status = searchParams.get('status') as ContestStatus
-    const type = searchParams.get('type') as ContestType
-    const minEntryFee = searchParams.get('minEntryFee')
-    const maxEntryFee = searchParams.get('maxEntryFee')
+    requestLogger.debug({ page, limit, sport, status, type }, 'Fetching contests')
 
-    const skip = (page - 1) * limit
-
-    // Build where clause
-    const where: any = {}
-    
-    if (sport) {
-      where.sport = { slug: sport }
-    }
-    
-    if (status) {
-      where.status = status
-    }
-    
-    if (type) {
-      where.type = type
-    }
-    
-    if (minEntryFee || maxEntryFee) {
-      where.entryFee = {}
-      if (minEntryFee) {
-        where.entryFee.gte = parseFloat(minEntryFee)
-      }
-      if (maxEntryFee) {
-        where.entryFee.lte = parseFloat(maxEntryFee)
-      }
-    }
-
-    // Get contests
     const [contests, total] = await Promise.all([
       prisma.contest.findMany({
         where,
@@ -86,7 +146,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching contests:', error)
+    requestLogger.error({ error }, 'Error fetching contests')
     return NextResponse.json(
       {
         success: false,
@@ -98,9 +158,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const requestLogger = getRequestLogger(request)
+
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         {
@@ -111,53 +173,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const {
-      sportId,
-      name,
-      description,
-      type,
-      entryFee,
-      maxEntries,
-      prizePool,
-      rosterSize,
-      salaryCap,
-      scoringRules,
-      startTime,
-      endTime,
-      lockTime,
-      isPrivate,
-    } = body
+    const payload = await request.json()
+    const parsedBody = contestInputSchema.safeParse(payload)
 
-    // Validate required fields
-    if (!sportId || !name || !type || !entryFee || !prizePool || !rosterSize || !startTime) {
+    if (!parsedBody.success) {
+      requestLogger.warn({ issues: parsedBody.error.flatten() }, 'Invalid contest payload received')
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields',
+          error: 'Invalid contest payload',
+          details: parsedBody.error.flatten(),
         },
         { status: 400 }
       )
     }
 
-    // Create contest
+    const data = parsedBody.data
+
     const contest = await prisma.contest.create({
       data: {
-        sportId,
+        sportId: data.sportId,
         creatorId: session.user.id,
-        name,
-        description,
-        type,
-        entryFee: parseFloat(entryFee),
-        maxEntries: maxEntries ? parseInt(maxEntries) : null,
-        prizePool: parseFloat(prizePool),
-        rosterSize: parseInt(rosterSize),
-        salaryCap: salaryCap ? parseFloat(salaryCap) : null,
-        scoringRules: scoringRules || {},
-        startTime: new Date(startTime),
-        endTime: endTime ? new Date(endTime) : null,
-        lockTime: lockTime ? new Date(lockTime) : null,
-        isPrivate: isPrivate || false,
+        name: data.name,
+        description: data.description,
+        type: data.type,
+        entryFee: data.entryFee,
+        maxEntries: data.maxEntries ?? null,
+        prizePool: data.prizePool,
+        rosterSize: data.rosterSize,
+        salaryCap: data.salaryCap ?? null,
+        scoringRules: data.scoringRules ?? {},
+        startTime: data.startTime,
+        endTime: data.endTime ?? null,
+        lockTime: data.lockTime ?? null,
+        isPrivate: data.isPrivate ?? false,
         status: 'DRAFT',
       },
       include: {
@@ -173,12 +222,17 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      data: contest,
-    })
+    requestLogger.info({ contestId: contest.id }, 'Contest created successfully')
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: contest,
+      },
+      { status: 201 }
+    )
   } catch (error) {
-    console.error('Error creating contest:', error)
+    requestLogger.error({ error }, 'Error creating contest')
     return NextResponse.json(
       {
         success: false,

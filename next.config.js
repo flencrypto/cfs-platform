@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  output: 'export',
-  trailingSlash: true,
+  reactStrictMode: true,
+  poweredByHeader: false,
   images: {
     unoptimized: true,
     domains: [

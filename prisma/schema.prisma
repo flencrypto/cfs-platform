@@ -103,9 +103,7 @@ model UserProfile {
   language  String   @default("en")
   
   // Preferences
-  notifications Email Boolean @default(true)
-  notifications Push  Boolean @default(true)
-  notifications SMS   Boolean @default(false)
+  notifications Json @default('{"email":true,"push":true,"sms":false}')
   
   // Responsible Gaming
   depositLimit    Decimal? @db.Decimal(10, 2)

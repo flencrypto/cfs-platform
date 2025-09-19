@@ -1,24 +1,49 @@
 {
+  "root": true,
   "extends": [
     "next/core-web-vitals",
-    "@typescript-eslint/recommended"
+    "standard-with-typescript"
   ],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
+  "parserOptions": {
+    "project": ["./tsconfig.eslint.json"],
+    "tsconfigRootDir": "."
+  },
   "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-empty-function": "warn",
-    "prefer-const": "error",
-    "no-var": "error"
+    "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
+    "@typescript-eslint/no-empty-function": ["warn", { "allow": ["arrowFunctions"] }],
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/strict-boolean-expressions": "off",
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
+    "@typescript-eslint/no-floating-promises": ["error", { "ignoreVoid": true }],
+    "@typescript-eslint/comma-dangle": "off",
+    "@typescript-eslint/space-before-function-paren": "off",
+    "@typescript-eslint/indent": "off",
+    "@typescript-eslint/consistent-type-imports": "off",
+    "@typescript-eslint/promise-function-async": "off",
+    "@typescript-eslint/array-type": "off",
+    "@typescript-eslint/quotes": "off",
+    "@typescript-eslint/no-confusing-void-expression": "off",
+    "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/prefer-readonly": "off",
+    "@typescript-eslint/dot-notation": "off",
+    "@typescript-eslint/no-dynamic-delete": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "no-trailing-spaces": "off",
+    "multiline-ternary": "off",
+    "react/no-unescaped-entities": "off",
+    "object-shorthand": "off",
+    "import/prefer-default-export": "off"
   },
   "ignorePatterns": [
     "node_modules/",
     ".next/",
     "out/",
     "dist/",
-    "build/"
+    "build/",
+    "coverage/"
   ]
 }

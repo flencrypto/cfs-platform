@@ -4,7 +4,6 @@ import GoogleProvider from 'next-auth/providers/google'
 import AppleProvider from 'next-auth/providers/apple'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
-import { compare } from 'bcryptjs'
 import { User } from '@/types'
 
 export const authOptions: NextAuthOptions = {
@@ -68,16 +67,19 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string
-        session.user.username = token.username as string
+      if (session.user && token) {
+        if (typeof token.id === 'string') {
+          session.user.id = token.id
+        }
+        if (typeof token.username === 'string') {
+          session.user.username = token.username
+        }
       }
       return session
     },
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
     error: '/auth/error',
   },
   events: {
@@ -99,14 +101,12 @@ export async function verifyWalletSignature(
   signature: string,
   message: string
 ): Promise<boolean> {
-  try {
-    // In a real implementation, you'd verify the signature using a library like ethers.js
-    // For now, we'll just return true for demo purposes
-    return true
-  } catch (error) {
-    console.error('Wallet signature verification failed:', error)
-    return false
-  }
+  // In a real implementation, you'd verify the signature using a library like ethers.js
+  // For now, we'll just return true for demo purposes while keeping the async interface
+  void address
+  void signature
+  void message
+  return true
 }
 
 export async function createWalletUser(

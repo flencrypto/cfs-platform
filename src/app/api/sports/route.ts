@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const active = searchParams.get('active')
 
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     if (active === 'true') {
       where.isActive = true
     }
@@ -23,7 +27,7 @@ export async function GET(request: NextRequest) {
       data: sports,
     })
   } catch (error) {
-    console.error('Error fetching sports:', error)
+    logger.error({ err: error }, 'Error fetching sports')
     return NextResponse.json(
       {
         success: false,

@@ -3,10 +3,10 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
-  Soccer, 
-  Basketball, 
-  Football, 
+import {
+  Award,
+  Dumbbell,
+  Flag,
   Zap,
   Trophy,
   Users,
@@ -17,7 +17,7 @@ const sports = [
   {
     id: 'soccer',
     name: 'Soccer',
-    icon: Soccer,
+    icon: Award,
     status: 'Live',
     contests: 156,
     prizePool: 125000,
@@ -28,7 +28,7 @@ const sports = [
   {
     id: 'nba',
     name: 'NBA',
-    icon: Basketball,
+    icon: Dumbbell,
     status: 'Live',
     contests: 89,
     prizePool: 89000,
@@ -39,7 +39,7 @@ const sports = [
   {
     id: 'nfl',
     name: 'NFL',
-    icon: Football,
+    icon: Flag,
     status: 'Coming Soon',
     contests: 0,
     prizePool: 0,
