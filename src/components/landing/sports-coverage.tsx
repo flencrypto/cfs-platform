@@ -3,21 +3,13 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
-  Soccer, 
-  Basketball, 
-  Football, 
-  Zap,
-  Trophy,
-  Users,
-  Calendar
-} from 'lucide-react'
+import { Goal, Dribbble, Shield, Zap, Trophy, Users, Calendar } from 'lucide-react'
 
 const sports = [
   {
     id: 'soccer',
     name: 'Soccer',
-    icon: Soccer,
+    icon: Goal,
     status: 'Live',
     contests: 156,
     prizePool: 125000,
@@ -28,7 +20,7 @@ const sports = [
   {
     id: 'nba',
     name: 'NBA',
-    icon: Basketball,
+    icon: Dribbble,
     status: 'Live',
     contests: 89,
     prizePool: 89000,
@@ -39,7 +31,7 @@ const sports = [
   {
     id: 'nfl',
     name: 'NFL',
-    icon: Football,
+    icon: Shield,
     status: 'Coming Soon',
     contests: 0,
     prizePool: 0,

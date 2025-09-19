@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getServiceStatus } from '@/lib/mock-config'
-import { CheckCircle, XCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { CheckCircle, XCircle, AlertCircle, Wifi } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,8 +68,8 @@ export function MockServiceBanner() {
         
         <div className="mt-3 text-sm text-blue-700">
           <p className="mb-2">
-            This app is running in development mode with mock services. 
-            All integrations are simulated and will work as if they're connected.
+            This app is running in development mode with mock services.
+            All integrations are simulated and will work as if they&rsquo;re connected.
           </p>
           
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">

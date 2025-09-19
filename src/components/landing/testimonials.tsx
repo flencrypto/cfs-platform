@@ -111,7 +111,9 @@ export function Testimonials() {
 
                 {/* Testimonial Text */}
                 <p className="mb-6 text-center text-muted-foreground">
-                  "{testimonial.text}"
+                  <span aria-hidden="true">&ldquo;</span>
+                  {testimonial.text}
+                  <span aria-hidden="true">&rdquo;</span>
                 </p>
 
                 {/* User Info */}

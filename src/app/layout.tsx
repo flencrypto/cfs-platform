@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
@@ -11,8 +11,6 @@ export const metadata: Metadata = {
   description: 'The ultimate crypto-enabled fantasy sports platform',
   keywords: ['fantasy sports', 'crypto', 'blockchain', 'sports betting', 'contests'],
   authors: [{ name: 'CFS Team' }],
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#6366f1',
   openGraph: {
     title: 'CFS - Crypto Fantasy Sports',
     description: 'The ultimate crypto-enabled fantasy sports platform',
@@ -24,6 +22,12 @@ export const metadata: Metadata = {
     title: 'CFS - Crypto Fantasy Sports',
     description: 'The ultimate crypto-enabled fantasy sports platform',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#6366f1',
 }
 
 export default function RootLayout({

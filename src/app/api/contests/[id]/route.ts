@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { CONTEST_STATUSES, CONTEST_TYPES, ContestStatus, ContestType } from '@/types'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+type ContestUpdatePayload = {
+  name?: string
+  description?: string | null
+  type?: ContestType
+  entryFee?: number
+  maxEntries?: number | null
+  prizePool?: number
+  rosterSize?: number
+  salaryCap?: number | null
+  scoringRules?: Record<string, unknown>
+  startTime?: Date
+  endTime?: Date | null
+  lockTime?: Date | null
+  status?: ContestStatus
+  isPrivate?: boolean
+  inviteCode?: string | null
+  sport?: { connect: { id: string } }
+}
 
 export async function GET(
   request: NextRequest,
@@ -91,14 +114,82 @@ export async function PATCH(
       )
     }
 
-    const body = await request.json()
-    const updateData = { ...body }
+    const body = (await request.json()) as Partial<{
+      name: string
+      description?: string | null
+      type?: ContestType | string
+      entryFee?: number
+      maxEntries?: number | null
+      prizePool?: number
+      rosterSize?: number
+      salaryCap?: number | null
+      scoringRules?: Record<string, unknown>
+      startTime?: string | Date
+      endTime?: string | Date | null
+      lockTime?: string | Date | null
+      status?: ContestStatus | string
+      isPrivate?: boolean
+      inviteCode?: string | null
+      sportId?: string
+    }>
 
-    // Remove fields that shouldn't be updated directly
-    delete updateData.id
-    delete updateData.createdAt
-    delete updateData.updatedAt
-    delete updateData.creatorId
+    const updateData: ContestUpdatePayload = {}
+
+    if (body.name !== undefined) updateData.name = body.name
+    if (body.description !== undefined) updateData.description = body.description
+
+    if (body.type !== undefined) {
+      const normalizedType = (typeof body.type === 'string'
+        ? body.type.toUpperCase()
+        : body.type) as ContestType
+      if (Object.values(CONTEST_TYPES).includes(normalizedType)) {
+        updateData.type = normalizedType
+      }
+    }
+
+    if (body.entryFee !== undefined) updateData.entryFee = body.entryFee
+    if (body.maxEntries !== undefined) updateData.maxEntries = body.maxEntries
+    if (body.prizePool !== undefined) updateData.prizePool = body.prizePool
+    if (body.rosterSize !== undefined) updateData.rosterSize = body.rosterSize
+    if (body.salaryCap !== undefined) updateData.salaryCap = body.salaryCap
+    if (body.scoringRules !== undefined) updateData.scoringRules = body.scoringRules
+
+    if (body.startTime !== undefined) {
+      updateData.startTime = new Date(body.startTime)
+    }
+
+    if (body.endTime !== undefined) {
+      updateData.endTime = body.endTime ? new Date(body.endTime) : null
+    }
+
+    if (body.lockTime !== undefined) {
+      updateData.lockTime = body.lockTime ? new Date(body.lockTime) : null
+    }
+
+    if (body.status !== undefined) {
+      const normalizedStatus = (typeof body.status === 'string'
+        ? body.status.toUpperCase()
+        : body.status) as ContestStatus
+      if (Object.values(CONTEST_STATUSES).includes(normalizedStatus)) {
+        updateData.status = normalizedStatus
+      }
+    }
+
+    if (body.isPrivate !== undefined) updateData.isPrivate = body.isPrivate
+    if (body.inviteCode !== undefined) updateData.inviteCode = body.inviteCode
+    if (body.sportId !== undefined) {
+      updateData.sport = { connect: { id: body.sportId } }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No valid fields provided for update',
+        },
+        { status: 400 }
+      )
+    }
 
     // Check if user is the creator or has admin rights
     const contest = await prisma.contest.findUnique({

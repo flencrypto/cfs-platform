@@ -3,7 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function GET(request: NextRequest) {
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
@@ -81,10 +84,34 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = (await request.json()) as Partial<{
+      profile: {
+        name?: string | null
+        username?: string | null
+        image?: string | null
+        firstName?: string | null
+        lastName?: string | null
+        phone?: string | null
+        country?: string | null
+        timezone?: string | null
+        language?: string | null
+        notifications?: {
+          email?: boolean
+          push?: boolean
+          sms?: boolean
+        }
+      }
+      preferences: {
+        depositLimit?: number | null
+        sessionLimit?: number | null
+        selfExcluded?: boolean
+        selfExcludedUntil?: string | Date | null
+      }
+    }>
+
     const { profile, preferences } = body
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
 
     // Update user fields
     if (profile) {
@@ -109,35 +136,93 @@ export async function PATCH(request: NextRequest) {
     })
 
     // Update profile if provided
-    if (profile && Object.keys(profile).length > 0) {
+    const profileUpdate: Record<string, unknown> = {}
+    const profileCreateData: Record<string, unknown> = {
+      userId: session.user.id,
+      language: 'en',
+      notifications: {
+        email: true,
+        push: true,
+        sms: false,
+      },
+    }
+
+    if (profile) {
+      if (profile.firstName !== undefined) {
+        profileUpdate.firstName = profile.firstName
+        profileCreateData.firstName = profile.firstName
+      }
+      if (profile.lastName !== undefined) {
+        profileUpdate.lastName = profile.lastName
+        profileCreateData.lastName = profile.lastName
+      }
+      if (profile.phone !== undefined) {
+        profileUpdate.phone = profile.phone
+        profileCreateData.phone = profile.phone
+      }
+      if (profile.country !== undefined) {
+        profileUpdate.country = profile.country
+        profileCreateData.country = profile.country
+      }
+      if (profile.timezone !== undefined) {
+        profileUpdate.timezone = profile.timezone
+        profileCreateData.timezone = profile.timezone
+      }
+      if (profile.language !== undefined) {
+        profileUpdate.language = profile.language
+        profileCreateData.language = profile.language
+      }
+      if (profile.notifications) {
+        profileUpdate.notifications = profile.notifications
+        profileCreateData.notifications = profile.notifications
+      }
+    }
+
+    if (preferences) {
+      if (preferences.depositLimit !== undefined) {
+        profileUpdate.depositLimit = preferences.depositLimit
+        profileCreateData.depositLimit = preferences.depositLimit ?? undefined
+      }
+      if (preferences.sessionLimit !== undefined) {
+        profileUpdate.sessionLimit = preferences.sessionLimit
+        profileCreateData.sessionLimit = preferences.sessionLimit ?? undefined
+      }
+      if (preferences.selfExcluded !== undefined) {
+        profileUpdate.selfExcluded = preferences.selfExcluded
+        profileCreateData.selfExcluded = preferences.selfExcluded ?? undefined
+      }
+      if (preferences.selfExcludedUntil !== undefined) {
+        const parsedDate =
+          preferences.selfExcludedUntil instanceof Date
+            ? preferences.selfExcludedUntil
+            : preferences.selfExcludedUntil
+            ? new Date(preferences.selfExcludedUntil)
+            : null
+        profileUpdate.selfExcludedUntil = parsedDate ?? undefined
+        profileCreateData.selfExcludedUntil = parsedDate ?? undefined
+      }
+    }
+
+    const shouldUpdateProfile =
+      Object.keys(profileUpdate).length > 0 || Object.keys(profileCreateData).length > 3
+
+    if (shouldUpdateProfile) {
       await prisma.userProfile.upsert({
         where: { userId: session.user.id },
-        update: {
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          phone: profile.phone,
-          country: profile.country,
-          timezone: profile.timezone,
-          language: profile.language,
-          notifications: profile.notifications || {
-            email: true,
-            push: true,
-            sms: false,
-          },
-        },
+        update: profileUpdate,
         create: {
-          userId: session.user.id,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          phone: profile.phone,
-          country: profile.country,
-          timezone: profile.timezone,
-          language: profile.language || 'en',
-          notifications: profile.notifications || {
-            email: true,
-            push: true,
-            sms: false,
-          },
+          ...profileCreateData,
+          firstName: profile?.firstName,
+          lastName: profile?.lastName,
+          phone: profile?.phone,
+          country: profile?.country,
+          timezone: profile?.timezone,
+          notifications:
+            profile?.notifications ?? {
+              email: true,
+              push: true,
+              sms: false,
+            },
         },
       })
     }
