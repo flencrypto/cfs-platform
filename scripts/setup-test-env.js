@@ -24,6 +24,7 @@ APPLE_CLIENT_ID="test-apple-client-id"
 APPLE_CLIENT_SECRET="test-apple-client-secret"
 
 # WalletConnect (Mock)
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="test-walletconnect-project-id"
 WALLETCONNECT_PROJECT_ID="test-walletconnect-project-id"
 
 # Stripe (Mock test keys)
