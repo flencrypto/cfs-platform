@@ -6,6 +6,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getRequestLogger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const notificationPreferencesSchema = z
   .object({
     email: z.boolean().optional(),

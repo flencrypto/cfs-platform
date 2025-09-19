@@ -4,9 +4,16 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getRequestLogger } from '@/lib/logger'
+import { CONTEST_STATUSES, CONTEST_TYPES, ContestStatus, ContestType } from '@/types'
 
-const contestStatusValues = ['DRAFT', 'ACTIVE', 'LOCKED', 'SETTLED', 'CANCELLED'] as const
-const contestTypeValues = ['DAILY', 'WEEKLY', 'SEASONAL', 'HEAD_TO_HEAD', 'TOURNAMENT', 'MULTIPLIER'] as const
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const contestStatusValues = Object.values(CONTEST_STATUSES) as [
+  ContestStatus,
+  ...ContestStatus[]
+]
+const contestTypeValues = Object.values(CONTEST_TYPES) as [ContestType, ...ContestType[]]
 
 const contestsQuerySchema = z
   .object({
@@ -101,7 +108,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    requestLogger.debug({ page, limit, sport, status, type }, 'Fetching contests')
+    requestLogger.debug(
+      { page, limit, sport, status, type, minEntryFee, maxEntryFee },
+      'Fetching contests'
+    )
 
     const [contests, total] = await Promise.all([
       prisma.contest.findMany({

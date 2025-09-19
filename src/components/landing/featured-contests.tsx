@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { formatCurrency, formatDate, getTimeUntil } from '@/lib/utils'
+import { formatCurrency, getTimeUntil } from '@/lib/utils'
 import { Trophy, Users, Clock, ArrowRight } from 'lucide-react'
 
 // Mock data - replace with real data from API

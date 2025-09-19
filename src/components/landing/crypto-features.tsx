@@ -1,15 +1,12 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
-  Coins, 
-  Shield, 
-  Zap, 
+import {
+  Coins,
+  Shield,
+  Zap,
   Globe,
-  Lock,
-  TrendingUp,
   ArrowRight,
   CheckCircle
 } from 'lucide-react'
@@ -91,7 +88,7 @@ export function CryptoFeatures() {
 
         {/* Features Grid */}
         <div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <Card key={feature.title} className="contest-card">
               <CardContent className="p-8">
                 <div className="flex items-start space-x-4">
@@ -108,8 +105,8 @@ export function CryptoFeatures() {
                     </p>
                     
                     <div className="space-y-2">
-                      {feature.benefits.map((benefit, benefitIndex) => (
-                        <div key={benefitIndex} className="flex items-center space-x-2">
+                      {feature.benefits.map((benefit) => (
+                        <div key={benefit} className="flex items-center space-x-2">
                           <CheckCircle className="h-4 w-4 text-cfs-success" />
                           <span className="text-sm text-muted-foreground">
                             {benefit}
@@ -130,7 +127,7 @@ export function CryptoFeatures() {
             Platform Statistics
           </h3>
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {cryptoStats.map((stat, index) => (
+            {cryptoStats.map((stat) => (
               <Card key={stat.label} className="text-center">
                 <CardContent className="p-6">
                   <div className="flex justify-center mb-2">

@@ -59,10 +59,11 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
+        const { username } = user as { username?: string | null }
         token.id = user.id
-        token.username = (user as any).username
+        token.username = typeof username === 'string' ? username : null
       }
       return token
     },
@@ -71,9 +72,8 @@ export const authOptions: NextAuthOptions = {
         if (typeof token.id === 'string') {
           session.user.id = token.id
         }
-        if (typeof token.username === 'string') {
-          session.user.username = token.username
-        }
+        session.user.username =
+          typeof token.username === 'string' ? token.username : undefined
       }
       return session
     },
@@ -83,11 +83,11 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, account }) {
       // Log sign in events for analytics
       console.log('User signed in:', { userId: user.id, provider: account?.provider })
     },
-    async signOut({ session, token }) {
+    async signOut({ token }) {
       // Log sign out events
       console.log('User signed out:', { userId: token?.id })
     },
@@ -99,20 +99,33 @@ export const authOptions: NextAuthOptions = {
 export async function verifyWalletSignature(
   address: string,
   signature: string,
-  message: string
+  message: string,
 ): Promise<boolean> {
-  // In a real implementation, you'd verify the signature using a library like ethers.js
-  // For now, we'll just return true for demo purposes while keeping the async interface
-  void address
-  void signature
-  void message
-  return true
+  try {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      throw new Error('Invalid wallet address format')
+    }
+
+    if (signature.trim().length === 0) {
+      throw new Error('Missing wallet signature')
+    }
+
+    if (message.trim().length === 0) {
+      throw new Error('Missing signed message')
+    }
+
+    // In a real implementation, verify the signature using a library like ethers.js
+    return true
+  } catch (error) {
+    console.error('Wallet signature verification failed:', error)
+    return false
+  }
 }
 
 export async function createWalletUser(
   address: string,
   signature: string,
-  message: string
+  message: string,
 ): Promise<User | null> {
   try {
     // Verify the signature first
@@ -207,21 +220,32 @@ export async function startKycVerification(userId: string, provider: string = 'p
 export async function updateKycStatus(
   userId: string,
   status: 'APPROVED' | 'REJECTED',
-  rejectionReason?: string
+  rejectionReason?: string,
 ) {
   try {
-    const updateData: any = {
+    const baseUpdate: Record<string, unknown> = {
       status,
-      [status === 'APPROVED' ? 'verifiedAt' : 'rejectedAt']: new Date(),
     }
 
-    if (status === 'REJECTED' && rejectionReason) {
-      updateData.rejectionReason = rejectionReason
-    }
+    const statusUpdate: Record<string, unknown> =
+      status === 'APPROVED'
+        ? {
+            verifiedAt: new Date(),
+            rejectedAt: null,
+            rejectionReason: null,
+          }
+        : {
+            rejectedAt: new Date(),
+            rejectionReason: rejectionReason ?? null,
+            verifiedAt: null,
+          }
 
     const kycProfile = await prisma.kycProfile.update({
       where: { userId },
-      data: updateData,
+      data: {
+        ...baseUpdate,
+        ...statusUpdate,
+      },
     })
 
     return kycProfile

@@ -2,6 +2,7 @@
   "root": true,
   "extends": [
     "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
     "standard-with-typescript"
   ],
   "parser": "@typescript-eslint/parser",
@@ -13,7 +14,7 @@
   "rules": {
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
+    "@typescript-eslint/consistent-type-definitions": "off",
     "@typescript-eslint/no-empty-function": ["warn", { "allow": ["arrowFunctions"] }],
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/strict-boolean-expressions": "off",
@@ -32,6 +33,11 @@
     "@typescript-eslint/dot-notation": "off",
     "@typescript-eslint/no-dynamic-delete": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/member-delimiter-style": "off",
+    "@typescript-eslint/return-await": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "no-var": "error",
+    "prefer-const": "error",
     "no-trailing-spaces": "off",
     "multiline-ternary": "off",
     "react/no-unescaped-entities": "off",

@@ -80,7 +80,7 @@ export interface Sport {
   isActive: boolean
   rosterSize: number
   salaryCap?: number
-  scoringRules?: Record<string, any>
+  scoringRules?: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }
@@ -96,8 +96,8 @@ export interface Fixture {
   league?: string
   season?: string
   round?: string
-  lineups?: Record<string, any>
-  stats?: Record<string, any>
+  lineups?: Record<string, unknown>
+  stats?: Record<string, unknown>
   players: Player[]
   createdAt: Date
   updatedAt: Date
@@ -113,13 +113,28 @@ export interface Player {
   position: string
   team: string
   salary?: number
-  stats?: Record<string, any>
-  projections?: Record<string, any>
+  stats?: Record<string, unknown>
+  projections?: Record<string, unknown>
   isActive: boolean
   injuryStatus?: string
   createdAt: Date
   updatedAt: Date
 }
+
+export type ContestStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'LOCKED'
+  | 'SETTLED'
+  | 'CANCELLED'
+
+export type ContestType =
+  | 'DAILY'
+  | 'WEEKLY'
+  | 'SEASONAL'
+  | 'HEAD_TO_HEAD'
+  | 'TOURNAMENT'
+  | 'MULTIPLIER'
 
 export interface Contest {
   id: string
@@ -137,7 +152,7 @@ export interface Contest {
   prizePool: number
   rosterSize: number
   salaryCap?: number
-  scoringRules?: Record<string, any>
+  scoringRules?: Record<string, unknown>
   startTime: Date
   endTime?: Date
   lockTime?: Date
@@ -186,7 +201,7 @@ export interface League {
   description?: string
   isPrivate: boolean
   inviteCode?: string
-  settings?: Record<string, any>
+  settings?: Record<string, unknown>
   contestId?: string
   contest?: Contest
   members: LeagueMember[]
@@ -214,7 +229,7 @@ export interface Transaction {
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
   externalId?: string
   description?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }
@@ -243,20 +258,20 @@ export interface Notification {
   type: 'CONTEST_STARTED' | 'CONTEST_ENDED' | 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED' | 'KYC_APPROVED' | 'KYC_REJECTED' | 'LEAGUE_INVITE' | 'MESSAGE_RECEIVED' | 'PRIZE_WON' | 'REFERRAL_BONUS'
   title: string
   message: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   isRead: boolean
   createdAt: Date
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
   message?: string
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   data: T[]
   pagination: {
     page: number
@@ -304,14 +319,14 @@ export interface LeagueForm {
   name: string
   description?: string
   isPrivate: boolean
-  settings?: Record<string, any>
+  settings?: Record<string, unknown>
 }
 
 // Webhook Types
 export interface WebhookEvent {
   id: string
   type: string
-  data: Record<string, any>
+  data: Record<string, unknown>
   created: number
 }
 
@@ -374,7 +389,7 @@ export interface SortState {
 export interface AppError {
   code: string
   message: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 // Constants
@@ -398,7 +413,7 @@ export const CONTEST_TYPES = {
   HEAD_TO_HEAD: 'HEAD_TO_HEAD',
   TOURNAMENT: 'TOURNAMENT',
   MULTIPLIER: 'MULTIPLIER',
-} as const
+} as const satisfies Record<string, ContestType>
 
 export const CONTEST_STATUSES = {
   DRAFT: 'DRAFT',
@@ -406,7 +421,7 @@ export const CONTEST_STATUSES = {
   LOCKED: 'LOCKED',
   SETTLED: 'SETTLED',
   CANCELLED: 'CANCELLED',
-} as const
+} as const satisfies Record<string, ContestStatus>
 
 export const PAYMENT_METHODS = {
   CARD: 'card',
@@ -426,7 +441,5 @@ export const CURRENCIES = {
 } as const
 
 export type SportType = typeof SPORTS[keyof typeof SPORTS]
-export type ContestType = typeof CONTEST_TYPES[keyof typeof CONTEST_TYPES]
-export type ContestStatus = typeof CONTEST_STATUSES[keyof typeof CONTEST_STATUSES]
 export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]
 export type Currency = typeof CURRENCIES[keyof typeof CURRENCIES]

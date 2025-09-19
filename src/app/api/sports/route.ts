@@ -7,7 +7,7 @@ export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const searchParams = request.nextUrl.searchParams
     const active = searchParams.get('active')
 
     const where: Record<string, unknown> = {}

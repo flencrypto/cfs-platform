@@ -1,5 +1,13 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosProgressEvent,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  isAxiosError,
+} from 'axios'
 import { ApiResponse, PaginatedResponse } from '@/types'
+
+type RequestParams = Record<string, string | number | boolean | undefined>
 
 class ApiClient {
   private client: AxiosInstance
@@ -17,33 +25,34 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        // Add auth token if available
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('auth-token')
+          const token = window.localStorage.getItem('auth-token')
           if (token) {
-            config.headers.Authorization = `Bearer ${token}`
+            const headers = config.headers ?? {}
+            if (typeof (headers as { set?: unknown }).set === 'function') {
+              ;(headers as { set: (name: string, value: string) => void }).set(
+                'Authorization',
+                `Bearer ${token}`
+              )
+            } else {
+              ;(headers as Record<string, unknown>).Authorization = `Bearer ${token}`
+            }
+            config.headers = headers
           }
         }
         return config
       },
-      (error) => {
-        return Promise.reject(error)
-      }
+      async (error) => Promise.reject(error)
     )
 
-    // Response interceptor
     this.client.interceptors.response.use(
-      (response: AxiosResponse) => {
-        return response
-      },
+      (response: AxiosResponse) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized access
+        if (isAxiosError(error) && error.response?.status === 401) {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('auth-token')
+            window.localStorage.removeItem('auth-token')
             window.location.href = '/auth/signin'
           }
         }
@@ -53,7 +62,10 @@ class ApiClient {
   }
 
   // Generic request methods
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async get<T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.get<ApiResponse<T>>(url, config)
       return response.data
@@ -62,7 +74,11 @@ class ApiClient {
     }
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async post<T = unknown, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.post<ApiResponse<T>>(url, data, config)
       return response.data
@@ -71,7 +87,11 @@ class ApiClient {
     }
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async put<T = unknown, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.put<ApiResponse<T>>(url, data, config)
       return response.data
@@ -80,7 +100,11 @@ class ApiClient {
     }
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async patch<T = unknown, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.patch<ApiResponse<T>>(url, data, config)
       return response.data
@@ -89,7 +113,10 @@ class ApiClient {
     }
   }
 
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async delete<T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await this.client.delete<ApiResponse<T>>(url, config)
       return response.data
@@ -99,9 +126,9 @@ class ApiClient {
   }
 
   // Paginated requests
-  async getPaginated<T = any>(
+  async getPaginated<T = unknown>(
     url: string,
-    params?: Record<string, any>
+    params?: RequestParams
   ): Promise<PaginatedResponse<T>> {
     try {
       const response = await this.client.get<PaginatedResponse<T>>(url, { params })
@@ -112,7 +139,7 @@ class ApiClient {
   }
 
   // File upload
-  async uploadFile<T = any>(
+  async uploadFile<T = unknown>(
     url: string,
     file: File,
     onProgress?: (progress: number) => void
@@ -125,7 +152,7 @@ class ApiClient {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        onUploadProgress: (progressEvent) => {
+        onUploadProgress: (progressEvent: AxiosProgressEvent) => {
           if (onProgress && progressEvent.total) {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
             onProgress(progress)
@@ -138,18 +165,28 @@ class ApiClient {
     }
   }
 
-  private handleError(error: any): Error {
-    if (error.response) {
-      // Server responded with error status
-      const message = error.response.data?.message || error.response.data?.error || 'An error occurred'
-      return new Error(message)
-    } else if (error.request) {
-      // Request was made but no response received
-      return new Error('Network error - please check your connection')
-    } else {
-      // Something else happened
+  private handleError(error: unknown): Error {
+    if (isAxiosError(error)) {
+      if (error.response) {
+        const message =
+          (error.response.data as { message?: string; error?: string })?.message ||
+          (error.response.data as { message?: string; error?: string })?.error ||
+          'An error occurred'
+        return new Error(message)
+      }
+
+      if (error.request) {
+        return new Error('Network error - please check your connection')
+      }
+
       return new Error(error.message || 'An unexpected error occurred')
     }
+
+    if (error instanceof Error) {
+      return error
+    }
+
+    return new Error('An unexpected error occurred')
   }
 
   // Set auth token
@@ -174,13 +211,17 @@ export const apiClient = new ApiClient()
 
 // Export individual methods for convenience
 export const api = {
-  get: <T = any>(url: string, config?: AxiosRequestConfig) => apiClient.get<T>(url, config),
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => apiClient.post<T>(url, data, config),
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => apiClient.put<T>(url, data, config),
-  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => apiClient.patch<T>(url, data, config),
-  delete: <T = any>(url: string, config?: AxiosRequestConfig) => apiClient.delete<T>(url, config),
-  getPaginated: <T = any>(url: string, params?: Record<string, any>) => apiClient.getPaginated<T>(url, params),
-  uploadFile: <T = any>(url: string, file: File, onProgress?: (progress: number) => void) => apiClient.uploadFile<T>(url, file, onProgress),
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig) => apiClient.get<T>(url, config),
+  post: <T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig<D>) =>
+    apiClient.post<T, D>(url, data, config),
+  put: <T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig<D>) =>
+    apiClient.put<T, D>(url, data, config),
+  patch: <T = unknown, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig<D>) =>
+    apiClient.patch<T, D>(url, data, config),
+  delete: <T = unknown>(url: string, config?: AxiosRequestConfig) => apiClient.delete<T>(url, config),
+  getPaginated: <T = unknown>(url: string, params?: RequestParams) => apiClient.getPaginated<T>(url, params),
+  uploadFile: <T = unknown>(url: string, file: File, onProgress?: (progress: number) => void) =>
+    apiClient.uploadFile<T>(url, file, onProgress),
   setAuthToken: (token: string) => apiClient.setAuthToken(token),
   clearAuthToken: () => apiClient.clearAuthToken(),
 }

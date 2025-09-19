@@ -62,6 +62,28 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientType | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+const createPrismaClient = (): PrismaClientType => {
+  try {
+    return new PrismaClient()
+  } catch (error) {
+    const message =
+      'PrismaClient failed to initialize. Run "prisma generate" and ensure database engines are available.'
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+    console.warn(message, error)
+
+    return new Proxy(
+      {},
+      {
+        get() {
+          throw new Error(message)
+        },
+      },
+    ) as PrismaClientType
+  }
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}

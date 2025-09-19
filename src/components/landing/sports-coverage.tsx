@@ -3,21 +3,13 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Award,
-  Dumbbell,
-  Flag,
-  Zap,
-  Trophy,
-  Users,
-  Calendar
-} from 'lucide-react'
+import { Goal, Dribbble, Shield, Zap, Trophy, Users, Calendar } from 'lucide-react'
 
 const sports = [
   {
     id: 'soccer',
     name: 'Soccer',
-    icon: Award,
+    icon: Goal,
     status: 'Live',
     contests: 156,
     prizePool: 125000,
@@ -28,7 +20,7 @@ const sports = [
   {
     id: 'nba',
     name: 'NBA',
-    icon: Dumbbell,
+    icon: Dribbble,
     status: 'Live',
     contests: 89,
     prizePool: 89000,
@@ -39,7 +31,7 @@ const sports = [
   {
     id: 'nfl',
     name: 'NFL',
-    icon: Flag,
+    icon: Shield,
     status: 'Coming Soon',
     contests: 0,
     prizePool: 0,
@@ -84,9 +76,7 @@ export function SportsCoverage() {
 
         {/* Live Sports */}
         <div className="mt-16">
-          <h3 className="mb-8 text-xl font-semibold text-foreground">
-            Live Now
-          </h3>
+          <h3 className="mb-8 text-xl font-semibold text-foreground">Live Now</h3>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {sports.map((sport) => (
               <Card key={sport.id} className="contest-card">
@@ -95,28 +85,20 @@ export function SportsCoverage() {
                     <div className={`p-3 rounded-full ${sport.bgColor}`}>
                       <sport.icon className={`h-6 w-6 ${sport.color}`} />
                     </div>
-                    <Badge 
-                      variant={sport.status === 'Live' ? 'success' : 'secondary'}
-                    >
+                    <Badge variant={sport.status === 'Live' ? 'success' : 'secondary'}>
                       {sport.status}
                     </Badge>
                   </div>
 
-                  <h4 className="text-lg font-semibold text-foreground mb-2">
-                    {sport.name}
-                  </h4>
+                  <h4 className="text-lg font-semibold text-foreground mb-2">{sport.name}</h4>
 
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {sport.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">{sport.description}</p>
 
                   {sport.status === 'Live' && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Contests</span>
-                        <span className="font-semibold text-foreground">
-                          {sport.contests}
-                        </span>
+                        <span className="font-semibold text-foreground">{sport.contests}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Prize Pool</span>
@@ -127,8 +109,8 @@ export function SportsCoverage() {
                     </div>
                   )}
 
-                  <Button 
-                    className="w-full mt-4" 
+                  <Button
+                    className="w-full mt-4"
                     variant={sport.status === 'Live' ? 'default' : 'outline'}
                     disabled={sport.status !== 'Live'}
                   >
@@ -142,16 +124,12 @@ export function SportsCoverage() {
 
         {/* Upcoming Sports */}
         <div className="mt-16">
-          <h3 className="mb-8 text-xl font-semibold text-foreground">
-            Coming Soon
-          </h3>
+          <h3 className="mb-8 text-xl font-semibold text-foreground">Coming Soon</h3>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {upcomingSports.map((sport) => (
               <Card key={sport.name} className="text-center">
                 <CardContent className="p-4">
-                  <h4 className="font-semibold text-foreground mb-2">
-                    {sport.name}
-                  </h4>
+                  <h4 className="font-semibold text-foreground mb-2">{sport.name}</h4>
                   <Badge variant="outline" className="text-xs">
                     {sport.status}
                   </Badge>
@@ -170,7 +148,7 @@ export function SportsCoverage() {
             <div className="text-3xl font-bold text-foreground">4</div>
             <div className="text-sm text-muted-foreground">Live Sports</div>
           </div>
-          
+
           <div className="text-center">
             <div className="flex justify-center mb-2">
               <Users className="h-8 w-8 text-crypto-ethereum" />
@@ -178,7 +156,7 @@ export function SportsCoverage() {
             <div className="text-3xl font-bold text-foreground">268</div>
             <div className="text-sm text-muted-foreground">Active Contests</div>
           </div>
-          
+
           <div className="text-center">
             <div className="flex justify-center mb-2">
               <Calendar className="h-8 w-8 text-cfs-accent" />
