@@ -1,0 +1,631 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  username  String?  @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Authentication
+  accounts Account[]
+  sessions Session[]
+
+  // Profile & KYC
+  profile     UserProfile?
+  kycProfile  KycProfile?
+  wallet      Wallet?
+
+  // Subscriptions
+  subscriptions Subscription[]
+
+  // Contest Participation
+  entries Entry[]
+  leagues LeagueMember[]
+
+  // Social
+  followers  Follow[] @relation("UserFollowers")
+  following  Follow[] @relation("UserFollowing")
+  messages   Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
+
+  // Admin
+  createdContests Contest[] @relation("ContestCreator")
+  adminRoles      AdminRole[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// User Profile & KYC
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName String?
+  lastName  String?
+  dateOfBirth DateTime?
+  phone     String?
+  country   String?
+  timezone  String?
+  language  String   @default("en")
+  
+  // Preferences
+  notifications Email Boolean @default(true)
+  notifications Push  Boolean @default(true)
+  notifications SMS   Boolean @default(false)
+  
+  // Responsible Gaming
+  depositLimit    Decimal? @db.Decimal(10, 2)
+  sessionLimit    Int?     // minutes
+  selfExcluded    Boolean  @default(false)
+  selfExcludedUntil DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+model KycProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status    KycStatus @default(PENDING)
+  provider  String?   // persona, onfido, sumsub
+  providerId String?
+  
+  // KYC Data
+  documentType String?
+  documentNumber String?
+  nationality String?
+  address String?
+  city String?
+  state String?
+  postalCode String?
+  
+  // Verification Results
+  verifiedAt DateTime?
+  rejectedAt DateTime?
+  rejectionReason String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("kyc_profiles")
+}
+
+enum KycStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// Wallet & Crypto
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Wallet Info
+  address   String?  @unique
+  type      WalletType @default(EOA)
+  network   String?  // ethereum, polygon, arbitrum
+  
+  // Balances
+  balances  WalletBalance[]
+  transactions Transaction[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+enum WalletType {
+  EOA
+  CUSTODIAL
+}
+
+model WalletBalance {
+  id        String   @id @default(cuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  currency  String   // USD, ETH, USDC, etc.
+  amount    Decimal  @db.Decimal(20, 8)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([walletId, currency])
+  @@map("wallet_balances")
+}
+
+// Sports Data
+model Sport {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  displayName String
+  isActive    Boolean  @default(true)
+  
+  // Configuration
+  rosterSize  Int
+  salaryCap   Decimal? @db.Decimal(10, 2)
+  scoringRules Json?   // Sport-specific scoring configuration
+  
+  // Relations
+  fixtures    Fixture[]
+  players     Player[]
+  contests    Contest[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sports")
+}
+
+model Fixture {
+  id        String   @id @default(cuid())
+  sportId   String
+  sport     Sport    @relation(fields: [sportId], references: [id])
+  
+  // Fixture Details
+  homeTeam  String
+  awayTeam  String
+  startTime DateTime
+  status    FixtureStatus @default(SCHEDULED)
+  
+  // League/Tournament
+  league    String?
+  season    String?
+  round     String?
+  
+  // Lineups & Stats
+  lineups   Json?    // Home and away team lineups
+  stats     Json?    // Live stats data
+  
+  // Relations
+  players   Player[]
+  entries   Entry[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("fixtures")
+}
+
+enum FixtureStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  sportId   String
+  sport     Sport    @relation(fields: [sportId], references: [id])
+  fixtureId String?
+  fixture   Fixture? @relation(fields: [fixtureId], references: [id])
+  
+  // Player Info
+  name      String
+  position  String
+  team      String
+  salary    Decimal? @db.Decimal(8, 2)
+  
+  // Stats
+  stats     Json?    // Current season stats
+  projections Json?  // Projected stats for this fixture
+  
+  // Status
+  isActive  Boolean  @default(true)
+  injuryStatus String? // healthy, questionable, doubtful, out
+  
+  // Relations
+  rosterSlots RosterSlot[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("players")
+}
+
+// Contests & Gameplay
+model Contest {
+  id        String   @id @default(cuid())
+  sportId   String
+  sport     Sport    @relation(fields: [sportId], references: [id])
+  creatorId String?
+  creator   User?    @relation("ContestCreator", fields: [creatorId], references: [id])
+  
+  // Contest Details
+  name      String
+  description String?
+  type      ContestType @default(DAILY)
+  status    ContestStatus @default(DRAFT)
+  
+  // Entry & Prizes
+  entryFee  Decimal  @db.Decimal(8, 2)
+  maxEntries Int?
+  currentEntries Int @default(0)
+  prizePool Decimal @db.Decimal(10, 2)
+  
+  // Rules
+  rosterSize Int
+  salaryCap  Decimal? @db.Decimal(10, 2)
+  scoringRules Json?  // Contest-specific scoring overrides
+  
+  // Timing
+  startTime DateTime
+  endTime   DateTime?
+  lockTime  DateTime? // When lineups lock
+  
+  // Privacy
+  isPrivate Boolean @default(false)
+  inviteCode String? @unique
+  
+  // Relations
+  entries   Entry[]
+  leagues   League[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contests")
+}
+
+enum ContestType {
+  DAILY
+  WEEKLY
+  SEASONAL
+  HEAD_TO_HEAD
+  TOURNAMENT
+  MULTIPLIER
+}
+
+enum ContestStatus {
+  DRAFT
+  ACTIVE
+  LOCKED
+  SETTLED
+  CANCELLED
+}
+
+model Entry {
+  id        String   @id @default(cuid())
+  contestId String
+  contest   Contest  @relation(fields: [contestId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  // Entry Details
+  name      String?
+  totalScore Decimal @default(0) @db.Decimal(8, 2)
+  rank      Int?
+  
+  // Payment
+  paymentId String?
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  // Roster
+  rosterSlots RosterSlot[]
+  
+  // Timing
+  submittedAt DateTime?
+  lockedAt    DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("entries")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model RosterSlot {
+  id        String   @id @default(cuid())
+  entryId   String
+  entry     Entry    @relation(fields: [entryId], references: [id])
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id])
+  
+  // Slot Configuration
+  position  String   // FWD1, MID1, DEF1, GK1, etc.
+  isCaptain Boolean  @default(false)
+  multiplier Decimal @default(1) @db.Decimal(3, 2)
+  
+  // Scoring
+  score     Decimal  @default(0) @db.Decimal(8, 2)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([entryId, position])
+  @@map("roster_slots")
+}
+
+// Leagues & Social
+model League {
+  id        String   @id @default(cuid())
+  name      String
+  description String?
+  isPrivate Boolean  @default(false)
+  inviteCode String? @unique
+  
+  // Settings
+  settings  Json?    // League-specific rules
+  
+  // Relations
+  contestId String?
+  contest   Contest? @relation(fields: [contestId], references: [id])
+  members   LeagueMember[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("leagues")
+}
+
+model LeagueMember {
+  id       String @id @default(cuid())
+  leagueId String
+  league   League @relation(fields: [leagueId], references: [id])
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  
+  role     LeagueRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  @@unique([leagueId, userId])
+  @@map("league_members")
+}
+
+enum LeagueRole {
+  MEMBER
+  ADMIN
+  COMMISSIONER
+}
+
+// Social Features
+model Follow {
+  id          String @id @default(cuid())
+  followerId  String
+  follower    User   @relation("UserFollowers", fields: [followerId], references: [id])
+  followingId String
+  following   User   @relation("UserFollowing", fields: [followingId], references: [id])
+  
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Message {
+  id          String @id @default(cuid())
+  senderId    String
+  sender      User   @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+  
+  content     String
+  isRead      Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+// Subscriptions & Payments
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  plan      String   // pro, plus, premium
+  status    SubscriptionStatus @default(ACTIVE)
+  
+  // Billing
+  amount    Decimal  @db.Decimal(8, 2)
+  currency  String   @default("USD")
+  interval  String   // monthly, yearly
+  
+  // Stripe
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  
+  // Timing
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  UNPAID
+  INCOMPLETE
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  walletId  String?
+  wallet    Wallet?  @relation(fields: [walletId], references: [id])
+  
+  // Transaction Details
+  type      TransactionType
+  amount    Decimal  @db.Decimal(20, 8)
+  currency  String
+  status    TransactionStatus @default(PENDING)
+  
+  // External References
+  externalId String? // Stripe payment intent, crypto tx hash
+  description String?
+  
+  // Metadata
+  metadata Json?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ENTRY_FEE
+  PRIZE_WIN
+  REFUND
+  SUBSCRIPTION
+  REFERRAL_BONUS
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Admin & System
+model AdminRole {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  
+  role   AdminRoleType
+  permissions Json? // Role-specific permissions
+  
+  createdAt DateTime @default(now())
+
+  @@map("admin_roles")
+}
+
+enum AdminRoleType {
+  SUPER_ADMIN
+  CONTEST_ADMIN
+  SUPPORT
+  COMPLIANCE
+  FINANCE
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  
+  // Action Details
+  action    String
+  entity    String
+  entityId  String
+  changes   Json?    // Before/after values
+  
+  // User Context
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?    // Additional notification data
+  
+  isRead    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  CONTEST_STARTED
+  CONTEST_ENDED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  KYC_APPROVED
+  KYC_REJECTED
+  LEAGUE_INVITE
+  MESSAGE_RECEIVED
+  PRIZE_WON
+  REFERRAL_BONUS
+}
