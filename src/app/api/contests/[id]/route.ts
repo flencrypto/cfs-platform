@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, isPrismaClientUnavailable } from '@/lib/prisma'
+import { mockData } from '@/lib/mock-config'
+import { generateId } from '@/lib/utils'
 import { CONTEST_STATUSES, CONTEST_TYPES, ContestStatus, ContestType } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -87,6 +89,92 @@ export async function GET(
     })
   } catch (error) {
     console.error('Error fetching contest:', error)
+    if (isPrismaClientUnavailable(error)) {
+      const baseDate = new Date('2023-01-01T00:00:00.000Z')
+      const mockContest = mockData.contests.find(contest => contest.id === params.id)
+
+      if (!mockContest) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Contest not found',
+          },
+          { status: 404 }
+        )
+      }
+
+      const resolvedSport =
+        mockData.sports.find(
+          sport =>
+            sport.slug === mockContest.sport.toLowerCase() ||
+            sport.displayName.toLowerCase() === mockContest.sport.toLowerCase() ||
+            sport.name.toLowerCase() === mockContest.sport.toLowerCase()
+        ) || {
+          id: `mock-sport-${mockContest.sport.toLowerCase()}`,
+          name: mockContest.sport,
+          slug: mockContest.sport.toLowerCase(),
+          displayName: mockContest.sport,
+          isActive: true,
+        }
+
+      const contestResponse = {
+        id: mockContest.id ?? `mock-contest-${generateId()}`,
+        sportId: resolvedSport.id,
+        sport: {
+          ...resolvedSport,
+          rosterSize: (resolvedSport as { rosterSize?: number }).rosterSize ?? 9,
+          salaryCap: (resolvedSport as { salaryCap?: number }).salaryCap,
+          scoringRules: (resolvedSport as { scoringRules?: Record<string, unknown> }).scoringRules ?? {},
+          createdAt: baseDate,
+          updatedAt: baseDate,
+        },
+        creatorId: 'mock-user',
+        creator: {
+          id: 'mock-user',
+          username: 'mockuser',
+          name: 'Mock User',
+          image: null,
+        },
+        name: mockContest.name,
+        description: mockContest.description ?? null,
+        type: mockContest.type,
+        status: mockContest.status,
+        entryFee: mockContest.entryFee,
+        maxEntries: mockContest.maxEntries ?? null,
+        currentEntries: mockContest.currentEntries ?? 0,
+        prizePool: mockContest.prizePool,
+        rosterSize: mockContest.rosterSize ?? 9,
+        salaryCap: mockContest.salaryCap ?? 50000,
+        scoringRules: mockContest.scoringRules ?? {},
+        startTime:
+          mockContest.startTime instanceof Date
+            ? mockContest.startTime
+            : new Date(mockContest.startTime),
+        endTime:
+          mockContest.endTime instanceof Date
+            ? mockContest.endTime
+            : mockContest.endTime
+            ? new Date(mockContest.endTime)
+            : undefined,
+        lockTime:
+          mockContest.lockTime instanceof Date
+            ? mockContest.lockTime
+            : mockContest.lockTime
+            ? new Date(mockContest.lockTime)
+            : undefined,
+        isPrivate: mockContest.isPrivate ?? false,
+        inviteCode: mockContest.inviteCode ?? null,
+        entries: [],
+        _count: { entries: mockContest.currentEntries ?? 0 },
+        createdAt: baseDate,
+        updatedAt: baseDate,
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: contestResponse,
+      })
+    }
     return NextResponse.json(
       {
         success: false,
@@ -252,6 +340,15 @@ export async function PATCH(
     })
   } catch (error) {
     console.error('Error updating contest:', error)
+    if (isPrismaClientUnavailable(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database is not available in mock mode. Contest updates are disabled.',
+        },
+        { status: 503 }
+      )
+    }
     return NextResponse.json(
       {
         success: false,
@@ -339,6 +436,15 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting contest:', error)
+    if (isPrismaClientUnavailable(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database is not available in mock mode. Contest deletion is disabled.',
+        },
+        { status: 503 }
+      )
+    }
     return NextResponse.json(
       {
         success: false,
