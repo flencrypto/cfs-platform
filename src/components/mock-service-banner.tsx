@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getServiceStatus } from '@/lib/mock-config'
+import { formatServiceName } from '@/lib/utils'
 import { CheckCircle, XCircle, AlertCircle, Wifi } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +62,7 @@ export function MockServiceBanner() {
             size="sm"
             onClick={() => setIsVisible(false)}
             className="text-blue-600 hover:text-blue-800"
+            aria-label="Dismiss development mode notice"
           >
             ×
           </Button>
@@ -79,7 +81,7 @@ export function MockServiceBanner() {
                 className={`flex items-center space-x-2 rounded-md border px-2 py-1 text-xs ${getStatusColor(status)}`}
               >
                 {getStatusIcon(status)}
-                <span className="capitalize">{service.replace(/([A-Z])/g, ' $1').trim()}</span>
+                <span>{formatServiceName(service)}</span>
               </div>
             ))}
           </div>
