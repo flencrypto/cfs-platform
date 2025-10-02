@@ -99,6 +99,23 @@ export function slugify(text: string): string {
     .replace(/ +/g, '-')
 }
 
+export function formatServiceName(serviceKey: string): string {
+  return serviceKey
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map(segment => {
+      const normalized = segment.toLowerCase()
+
+      if (normalized.length <= 3) {
+        return normalized.toUpperCase()
+      }
+
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+    })
+    .join(' ')
+}
+
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.substr(0, maxLength).trim() + '...'
